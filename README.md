@@ -1,54 +1,103 @@
-# Forked to upgrade base library to newer version
+# Google Sign-In Unity Plugin - Personal Fork
 
-https://developer.android.com/identity/sign-in/legacy-gsi-migration
-https://developers.google.com/identity/sign-in/ios/quick-migration-guide
+This is a personal fork of the Google Sign-In Unity Plugin, upgraded to use the latest Android and iOS authentication libraries.
 
-Thank for ios fix which was cherrypicked from this fork : https://github.com/pillsgood/google-signin-unity which came from @DulgiKim https://github.com/googlesamples/google-signin-unity/pull/205#issuecomment-1724733615
+**Personal Fork:** [weiping-playnext/google-signin-unity](https://github.com/weiping-playnext/google-signin-unity)  
+**Upstream Fork:** [Thaina/google-signin-unity](https://github.com/Thaina/google-signin-unity)  
+**Original Repository:** [googlesamples/google-signin-unity](https://github.com/googlesamples/google-signin-unity)
 
-Android was migrated to use `CredentialManager` and `AuthorizationClient` since [GoogleSignInAccount was deprecated](https://developers.google.com/android/reference/com/google/android/gms/auth/api/signin/GoogleSignInAccount)
+## Migration to New APIs
 
-However, `GoogleIdTokenCredential` actually not provide numeric unique ID anymore and set email as userId instead, so I have to extract jwt `sub` value from idToken (which seem like the same id as userId from GoogleSignIn of other platform)
+This fork migrates from deprecated Google Sign-In libraries to the new authentication systems:
 
-Also, this new system seem like it did not support email hint. And now require WebClientId in addition to Android Client ID. Which need to provided at configuration initialization
+- **Android:** Migrated to `CredentialManager` and `AuthorizationClient` ([Migration Guide](https://developer.android.com/identity/sign-in/legacy-gsi-migration))
+- **iOS:** Updated to latest GoogleSignIn SDK ([Quick Migration Guide](https://developers.google.com/identity/sign-in/ios/quick-migration-guide))
+
+### Acknowledgments
+
+Thanks to the iOS fix from [pillsgood/google-signin-unity](https://github.com/pillsgood/google-signin-unity) and [@DulgiKim](https://github.com/googlesamples/google-signin-unity/pull/205#issuecomment-1724733615) for their contributions.
+
+## Key Changes in This Fork
+
+### Android Migration
+Android has been migrated to use `CredentialManager` and `AuthorizationClient` since [GoogleSignInAccount was deprecated](https://developers.google.com/android/reference/com/google/android/gms/auth/api/signin/GoogleSignInAccount).
+
+**Important Notes:**
+- `GoogleIdTokenCredential` no longer provides numeric unique IDs; it uses email as userId instead
+- This fork extracts the JWT `sub` value from idToken (consistent with userId from GoogleSignIn on other platforms)
+- The new system does not support email hints
+- **WebClientId is now required** in addition to Android Client ID and must be provided at configuration initialization
+
+### iOS Migration
+The iOS implementation has been updated to support the latest GoogleSignIn SDK (v7.0.0+). An editor tool `PListProcessor` has been added to automatically configure `GIDClientID` and `GIDServerClientID` in Info.plist.
+
+## Configuration Example
+
+Here's how to configure Google Sign-In in your Unity project:
 
 ```C#
-        GoogleSignIn.Configuration = new GoogleSignInConfiguration() {
-            RequestEmail = true,
-            RequestProfile = true,
-            RequestIdToken = true,
-            RequestAuthCode = true,
-            // must be web client ID, not android client ID
-            WebClientId = "XXXXXXXXX-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
+GoogleSignIn.Configuration = new GoogleSignInConfiguration() {
+    RequestEmail = true,
+    RequestProfile = true,
+    RequestIdToken = true,
+    RequestAuthCode = true,
+    // IMPORTANT: Must be web client ID, not Android client ID
+    WebClientId = "XXXXXXXXX-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
 #if UNITY_EDITOR || UNITY_STANDALONE
-            ClientSecret = "XXXXXX-xxxXXXxxxXXXxxx-xxxxXXXXX" // optional for windows/macos and test in editor
+    ClientSecret = "XXXXXX-xxxXXXxxxXXXxxx-xxxxXXXXX" // Optional for Windows/macOS and testing in editor
 #endif
-        };
+};
 ```
 
-Tested in unity 2021.3.21 and unity 6000.0.5
+**Tested with:** Unity 2021.3.21 and Unity 6000.0.5
 
-Add UPM dependency with branch tag `https://github.com/Thaina/google-signin-unity.git#newmigration`
+## Installation
+
+Add the UPM dependency to your `manifest.json` in the `Packages` folder:
+
+### Stable Branch (Recommended)
 
 ```json
 {
   "dependencies": {
     "com.google.external-dependency-manager": "https://github.com/googlesamples/unity-jar-resolver.git?path=upm",
-    "com.google.signin": "https://github.com/Thaina/google-signin-unity.git#newmigration",
+    "com.google.signin": "https://github.com/weiping-playnext/google-signin-unity.git#newmigration",
     ...
   }
 }
 ```
 
-Also, [New version of iOS recommend](https://developers.google.com/identity/sign-in/ios/quick-migration-guide#google_sign-in_sdk_v700) that we should set `GIDClientID` and `GIDServerClientID` into Info.plist
+### Development Branch
 
-So I have add an editor tool `PListProcessor` that look for plist files in the project, extract `CLIENT_ID` and `WEB_CLIENT_ID` property of the plist which contain the `BUNDLE_ID` with the same name as bundle identifier of the project
+For the latest experimental features and fixes:
 
-The plist file in the project should be downloaded from Google Cloud Console credential page
+```json
+{
+  "dependencies": {
+    "com.google.external-dependency-manager": "https://github.com/googlesamples/unity-jar-resolver.git?path=upm",
+    "com.google.signin": "https://github.com/weiping-playnext/google-signin-unity.git#personal_working",
+    ...
+  }
+}
+```
 
-Select iOS credential and download at ⬇ button
+## iOS Configuration
+
+[The new version of iOS SDK recommends](https://developers.google.com/identity/sign-in/ios/quick-migration-guide#google_sign-in_sdk_v700) setting `GIDClientID` and `GIDServerClientID` in Info.plist.
+
+This fork includes an editor tool `PListProcessor` that automatically extracts `CLIENT_ID` and `WEB_CLIENT_ID` properties from plist files in your project that match your Unity bundle identifier.
+
+### Setting up iOS Credentials
+
+1. Download the plist file from [Google Cloud Console](https://console.cloud.google.com) credential page
+2. Select your iOS credential and click the ⬇ download button
+3. Place the downloaded plist file in your Unity project
+4. The `PListProcessor` will automatically configure it during build
+
+**Required plist format:**
 
 ```xml
-<!-- This plist was the default format downloaded from your google cloud console -->
+<!-- This is the default format downloaded from Google Cloud Console -->
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -61,14 +110,18 @@ Select iOS credential and download at ⬇ button
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.{YourCompany}.{YourProductName}</string>
-<!-- Optional, These 2 lines below should be added manually if you need ServerAuthCode -->
-  <key>WEB_CLIENT_ID</key>
-  <string>{YourCloudProjectID}-zzzZZZZZZZZZZZZZZzzzzzzzzzzZZZzzz.apps.googleusercontent.com</string>
+	<!-- Optional: Add these lines manually if you need ServerAuthCode -->
+	<key>WEB_CLIENT_ID</key>
+	<string>{YourCloudProjectID}-zzzZZZZZZZZZZZZZZzzzzzzzzzzZZZzzz.apps.googleusercontent.com</string>
 </dict>
 </plist>
 ```
 
-### Document below is original README, some information might be outdated
+---
+
+## Original Documentation
+
+*The documentation below is from the original Google Sign-In Unity Plugin. Some information may be outdated but is kept for reference.*
 
 # Google Sign-In Unity Plugin
 _Copyright (c) 2017 Google Inc. All rights reserved._
@@ -229,4 +282,17 @@ There's also a shortcut for linux/mac: `./build_all`.
 
 
 ## Questions? Problems?
-Post questions to this [Github project](https://github.com/googlesamples/google-signin-unity).
+
+For issues related to this personal fork, please open an issue on the [personal fork repository](https://github.com/weiping-playnext/google-signin-unity).
+
+For upstream fork questions, refer to [Thaina/google-signin-unity](https://github.com/Thaina/google-signin-unity).  
+For general Google Sign-In Unity questions, refer to the [original repository](https://github.com/googlesamples/google-signin-unity).
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues or pull requests to improve this fork.
+
+## License
+
+This project maintains the original license from the Google Sign-In Unity Plugin.  
+_Original Copyright (c) 2017 Google Inc. All rights reserved._
